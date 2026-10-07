@@ -35,6 +35,19 @@ describe('register', () => {
     on('tool.call', () => ran)
   }
 
+  /** A store the test can read back: mock.store keeps its entries to itself. */
+  function recordingStore(on: On, seed: Record<string, unknown> = {}): Map<string, unknown> {
+    const entries = new Map<string, unknown>(Object.entries(seed))
+    on('store.get', ($, e) => ({ value: entries.get(e.key) }))
+    on('store.set', ($, e) => {
+      entries.set(e.key, e.value)
+
+      return { value: undefined }
+    })
+
+    return entries
+  }
+
   async function bandText($: Engine, surface: (typeof Fixtures.SURFACES)[number] = 'terminal') {
     const ui = await $.ui.mount({
       plugin: Fixtures.PLUGIN,
@@ -352,6 +365,48 @@ describe('register', () => {
     expect(text).toContain('▴ +$185     ✕ FAIL at x2.85, failed: pytest')
     expect(text).toContain('Rank          Weekend punter')
     expect(text).toContain('Best streak   ▴▴▴ 3 wins in a row')
+  })
+
+  test('a store from before layouts is read as it is, and the next save writes layout 1 beside it', async ($, on) => {
+    Fixtures.inSession(on)
+    const stored = recordingStore(on, {
+      bank: { balance: 1234, pnl: 234, wins: 3, losses: 1, voids: 0, bailouts: 0, streak: 1, bestStreak: 3, recent: [] },
+    })
+    const clock = mock.clock(on)
+    const tool = Fixtures.heldTool(on)
+
+    await $.session.start(Fixtures.SESSION)
+    const call = $.tool.call({ tool: 'Bash', command: 'npm test' })
+    await tool.reached
+    await press($, 'bet-pass')
+    tool.release(Fixtures.PASSED)
+    await clock.advance(7_000)
+    await call
+
+    // 1234 - 100 staked + 190 paid at x1.90
+    expect(await paneText($)).toContain('BANKROLL   $1,324')
+    expect(stored.get('layout')).toBe(1)
+  })
+
+  test('a store saved in a newer layout is never read or overwritten, and the person is told so', async ($, on) => {
+    const newer = { balance: 5000, pnl: 4000, wins: 40, losses: 2, voids: 0, bailouts: 0, streak: 9, bestStreak: 9, recent: [] }
+    Fixtures.inSession(on)
+    const stored = recordingStore(on, { layout: 2, bank: newer, 'history:/work': { passes: 9, fails: 1 } })
+    const toasts = toastsOf(on)
+    const tool = Fixtures.heldTool(on)
+
+    await $.session.start(Fixtures.SESSION)
+    expect(toasts).toEqual(['This bankroll was saved by a newer pass-or-bust. Update the mod; nothing was changed.'])
+
+    const call = $.tool.call({ tool: 'Bash', command: 'npm test' })
+    await tool.reached
+    expect(await bandText($), 'no market opens on a store it cannot read').toBe('')
+    tool.release(Fixtures.PASSED)
+
+    expect(await call).toEqual(Fixtures.PASSED)
+    expect(stored.get('layout')).toBe(2)
+    expect(stored.get('bank')).toEqual(newer)
+    expect(stored.get('history:/work')).toEqual({ passes: 9, fails: 1 })
   })
 
   test('a bankroll below one stake offers a bailout instead of bets', async ($, on) => {

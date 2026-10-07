@@ -5,6 +5,24 @@ import type { History } from '../odds'
 export const BANK_KEY = 'bank'
 export const SLIP_KEY = 'slip'
 
+/** The store key that says which layout the rest of the store is saved in. */
+export const LAYOUT_KEY = 'layout'
+/** The layout this release reads and writes. */
+export const LAYOUT = 1
+
+/**
+ * How to treat a store by the layout it was saved in: one with no layout is from before layouts and reads as
+ * this layout does; a newer layout, or one this release cannot make sense of, must be neither read nor
+ * overwritten.
+ */
+export function layoutOf(stored: unknown): 'legacy' | 'current' | 'unreadable' {
+  if (stored === undefined) {
+    return 'legacy'
+  }
+
+  return stored === LAYOUT ? 'current' : 'unreadable'
+}
+
 /** The store key a project's test record lives under, one per directory. */
 export function historyKeyOf(cwd: string | null): string {
   return cwd === null ? 'history' : `history:${cwd}`
