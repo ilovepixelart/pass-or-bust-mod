@@ -117,6 +117,14 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // /clear, /resume and /branch reset every $.state value and session.start does not fire again: load the
+  // bankroll again, or the band shows the default and the next save writes it over the stored one
+  on('classic.SessionStart', { source: ['clear', 'resume', 'fork'] }, async ($, e, next) => {
+    isLocked = await load($)
+
+    return next(e)
+  })
+
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const testRun = e.run_in_background === true || isLocked ? null : Detect.testRunOf(e.command)
     if (testRun === null) {
