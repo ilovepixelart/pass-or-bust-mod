@@ -32,6 +32,9 @@ jobs:
           claude --plugin-dir . -p "load" || true
           test -f .claude-plugin/types/tsconfig.json
 
+      - name: Release check
+        run: node scripts/check-release.mjs
+
       - name: Validate
         run: claude plugin validate --strict .
 
