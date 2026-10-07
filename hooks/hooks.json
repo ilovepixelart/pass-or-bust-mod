@@ -1,0 +1,4 @@
+{
+  "description": "The test-run market: a band above the prompt while Claude runs the tests, settlement from the run's result, and /bankroll",
+  "modules": ["./register.tsx"]
+}

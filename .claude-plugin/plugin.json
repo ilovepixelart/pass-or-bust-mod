@@ -1,0 +1,10 @@
+{
+  "name": "pass-or-bust",
+  "version": "0.1.0",
+  "description": "Slots for your test runs: the reels spin while Claude runs the tests and stop on the real result. Fake credits only.",
+  "author": {
+    "name": "ilovepixelart",
+    "email": "ilovepixelart@users.noreply.github.com"
+  },
+  "types": "./types/index.d.ts"
+}

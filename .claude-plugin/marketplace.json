@@ -1,0 +1,16 @@
+{
+  "name": "pass-or-bust-mod",
+  "description": "Claude Code mods by ilovepixelart: pass-or-bust, slots for your test runs.",
+  "owner": {
+    "name": "ilovepixelart",
+    "email": "ilovepixelart@users.noreply.github.com"
+  },
+  "plugins": [
+    {
+      "name": "pass-or-bust",
+      "source": "./",
+      "description": "Slots for your test runs: the reels spin while Claude runs the tests and stop on the real result. Fake credits only.",
+      "version": "0.1.0"
+    }
+  ]
+}
