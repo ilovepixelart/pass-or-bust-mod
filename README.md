@@ -68,12 +68,31 @@ Requires Claude Code 2.1.287 or later (mods). Developed and tested on 2.1.292.
 The house is designed for a dark Claude Code theme; on a light theme some text is hard to read.
 
 ```
-/plugin marketplace add <owner>/pass-or-bust-mod
+/plugin marketplace add ilovepixelart/pass-or-bust-mod
 /plugin install pass-or-bust@pass-or-bust-mod
 /reload-plugins
 ```
 
+That follows the latest release on `main`. To stay on one release instead,
+add the marketplace at its tag:
+
+```
+/plugin marketplace add ilovepixelart/pass-or-bust-mod#pass-or-bust--v0.1.0
+```
+
+To take a new release later, run `claude plugin update pass-or-bust@pass-or-bust-mod`
+in your shell. Each [release](https://github.com/ilovepixelart/pass-or-bust-mod/releases)
+also carries a zip of the plugin for `claude --plugin-url`, and
+[CHANGELOG.md](CHANGELOG.md) lists what each one changed.
+
 To try it from a clone without installing: `claude --plugin-dir /path/to/pass-or-bust-mod`.
+
+## Versioning
+
+Releases follow [Semantic Versioning](https://semver.org/). While the version
+is 0.x, any release may change behaviour. The bankroll is saved in a
+versioned store layout: a release never reads or overwrites a store saved in
+a newer layout than it knows, and says so instead.
 
 ## How the house sets the odds
 
@@ -118,7 +137,8 @@ Claude ran it:
 
 What `claude plugin validate .` reports the module calls, and why:
 
-- `$.store`: the bankroll, an open bet and each project's pass and fail counts.
+- `$.store`: the store layout version, the bankroll, an open bet and each
+  project's pass and fail counts.
 - `$.state`, `$.ui.open`, `$.ui.resolve`, `$.command.register`: the band and `/bankroll`.
 - `$.ui.toast`: the settlement line.
 - `$.clock.now`, `$.clock.after`: how long a run took, and taking the show down
@@ -138,10 +158,17 @@ hook fails, its `.catch` lets the call through.
 ## Development
 
 ```sh
+node scripts/check-release.mjs
 claude plugin validate --strict .
 claude plugin test .
 npx -p typescript tsc -p .
 ```
+
+To release, add the version's section to `CHANGELOG.md`, set the version in
+`.claude-plugin/plugin.json` (its only home), merge, then run
+`claude plugin tag --push` on `main`. The pushed `pass-or-bust--v<version>`
+tag starts the release workflow, which checks everything again and creates
+the GitHub release.
 
 `tsc` needs the type declarations Claude Code writes into
 `.claude-plugin/types/` when it loads the plugin; any `claude --plugin-dir .`
