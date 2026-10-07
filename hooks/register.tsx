@@ -10,6 +10,7 @@ import Odds from './odds'
 import Settle from './settle'
 import Stored from './stored'
 import Views from './views'
+import Words from './words'
 
 const PANE = 'bankroll'
 
@@ -68,10 +69,20 @@ function announce($: { ui: { toast: (text: string) => unknown }; audio: { play: 
   }
 }
 
+/** Saves entries in this release's layout, the layout key first: the store is only ever written in one layout. */
+async function save($: { store: { set: (key: string, value: unknown) => Promise<void> } }, entries: readonly (readonly [string, unknown])[]) {
+  await $.store.set(Stored.LAYOUT_KEY, Stored.LAYOUT)
+  for (const [key, value] of entries) {
+    await $.store.set(key, value)
+  }
+}
+
 export const register: Register = on => {
   let historyKey = Stored.historyKeyOf(null)
   let lastStampId = 0
   let lastRunId = 0
+  // a store saved in a layout this release cannot read is left exactly as it is: no market, no writes
+  let isLocked = false
   const seen = new Map<number, Seen>()
 
   on('session.start', async ($, e, next) => {
@@ -80,6 +91,13 @@ export const register: Register = on => {
       name: 'bankroll',
       description: 'Your pass-or-bust bankroll: balance, lifetime P&L and recent bets',
     })
+
+    isLocked = Stored.layoutOf(await $.store.get(Stored.LAYOUT_KEY)) === 'unreadable'
+    if (isLocked) {
+      quietly(Promise.resolve($.ui.toast(Words.NEWER_LAYOUT, { timeoutMs: 15_000 })))
+
+      return next(e)
+    }
 
     const bank = Stored.bankOf(await $.store.get(Stored.BANK_KEY))
     const slip = Stored.slipOf(await $.store.get(Stored.SLIP_KEY))
@@ -90,7 +108,7 @@ export const register: Register = on => {
   })
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    const testRun = e.run_in_background === true ? null : Detect.testRunOf(e.command)
+    const testRun = e.run_in_background === true || isLocked ? null : Detect.testRunOf(e.command)
     if (testRun === null) {
       return next(e)
     }
@@ -121,7 +139,7 @@ export const register: Register = on => {
     const outcome = testRun.isPiped ? Settle.pipedOutcomeOf(ran, testRun.family) : Settle.outcomeOf(ran)
 
     const after = Odds.recordOf(Stored.historyOf(await $.store.get(historyKey)), outcome)
-    await $.store.set(historyKey, after)
+    await save($, [[historyKey, after]])
     const market = await update($, marketAtom, () => ({
       command: e.command,
       odds: Odds.oddsOf(after),
@@ -146,8 +164,10 @@ export const register: Register = on => {
     if (settled !== null) {
       await update($, bankAtom, () => settled.bank)
       await update($, slipAtom, () => settled.slip)
-      await $.store.set(Stored.BANK_KEY, settled.bank)
-      await $.store.set(Stored.SLIP_KEY, settled.slip)
+      await save($, [
+        [Stored.BANK_KEY, settled.bank],
+        [Stored.SLIP_KEY, settled.slip],
+      ])
       lastStampId += 1
       const id = lastStampId
       await update($, stampAtom, () => ({ id, ...settled.stamp }))
@@ -227,8 +247,10 @@ export const register: Register = on => {
       if (change !== null) {
         await update($, bankAtom, () => change.bank)
         await update($, slipAtom, () => change.slip)
-        await $.store.set(Stored.BANK_KEY, change.bank)
-        await $.store.set(Stored.SLIP_KEY, change.slip)
+        await save($, [
+          [Stored.BANK_KEY, change.bank],
+          [Stored.SLIP_KEY, change.slip],
+        ])
       }
     }
 

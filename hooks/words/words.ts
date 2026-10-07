@@ -173,3 +173,6 @@ function shortened(command: string): string {
 
   return line.length > COMMAND_SHOWN ? `${line.slice(0, COMMAND_SHOWN)}...` : line
 }
+
+/** What the person is told when the store was saved in a layout this release does not read. */
+export const NEWER_LAYOUT = 'This bankroll was saved by a newer pass-or-bust. Update the mod; nothing was changed.'
