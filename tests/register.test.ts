@@ -409,6 +409,52 @@ describe('register', () => {
     expect(stored.get('history:/work')).toEqual({ passes: 9, fails: 1 })
   })
 
+  test('a bankroll another session changed is built on, not overwritten from the copy this session loaded', async ($, on) => {
+    const bank = { balance: 1000, pnl: 0, wins: 0, losses: 0, voids: 0, bailouts: 0, streak: 0, bestStreak: 0, recent: [] }
+    Fixtures.inSession(on)
+    const stored = recordingStore(on, { bank })
+    const clock = mock.clock(on)
+    const tool = Fixtures.heldTool(on)
+
+    await $.session.start(Fixtures.SESSION)
+    // another session settles a win after this one loaded its copy of the bankroll
+    stored.set('bank', { ...bank, balance: 2000, pnl: 1000, wins: 1 })
+
+    const call = $.tool.call({ tool: 'Bash', command: 'npm test' })
+    await tool.reached
+    await press($, 'bet-pass')
+    tool.release(Fixtures.PASSED)
+    await clock.advance(7_000)
+    await call
+
+    // 2000 - 100 staked + 190 paid at x1.90: neither session's result is lost
+    const saved = stored.get('bank') as { balance: number; wins: number }
+    expect(saved.balance).toBe(2090)
+    expect(saved.wins).toBe(2)
+  })
+
+  test('a settlement builds on what another session saved while the tests ran', async ($, on) => {
+    const bank = { balance: 1000, pnl: 0, wins: 0, losses: 0, voids: 0, bailouts: 0, streak: 0, bestStreak: 0, recent: [] }
+    Fixtures.inSession(on)
+    const stored = recordingStore(on, { bank })
+    const clock = mock.clock(on)
+    const tool = Fixtures.heldTool(on)
+
+    await $.session.start(Fixtures.SESSION)
+    const call = $.tool.call({ tool: 'Bash', command: 'npm test' })
+    await tool.reached
+    await press($, 'bet-pass')
+    // the stake is down to 900; another session settles a +500 win before these tests finish
+    const afterStake = stored.get('bank') as { balance: number; wins: number }
+    stored.set('bank', { ...afterStake, balance: afterStake.balance + 500, wins: afterStake.wins + 1 })
+    tool.release(Fixtures.PASSED)
+    await clock.advance(7_000)
+    await call
+
+    // 1400 + 190 paid at x1.90
+    expect((stored.get('bank') as { balance: number }).balance).toBe(1590)
+  })
+
   test('a bankroll below one stake offers a bailout instead of bets', async ($, on) => {
     Fixtures.inSession(on)
     mock.store(on, {

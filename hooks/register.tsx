@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register } from 'claude-code'
+import type { EngineInterface, Register } from 'claude-code'
 
 import Bankroll from './bankroll'
 import Detect from './detect'
@@ -77,12 +77,32 @@ async function save($: { store: { set: (key: string, value: unknown) => Promise<
   }
 }
 
+/**
+ * Copies the stored bankroll and open bet into $.state, unless the store is in a layout this release cannot
+ * read: then it says so and copies nothing. Resolves to whether the store is locked that way.
+ */
+async function load($: EngineInterface): Promise<boolean> {
+  if (Stored.layoutOf(await $.store.get(Stored.LAYOUT_KEY)) === 'unreadable') {
+    quietly(Promise.resolve($.ui.toast(Words.NEWER_LAYOUT, { timeoutMs: 15_000 })))
+
+    return true
+  }
+
+  const bank = Stored.bankOf(await $.store.get(Stored.BANK_KEY))
+  const slip = Stored.slipOf(await $.store.get(Stored.SLIP_KEY))
+  await update($, bankAtom, () => bank)
+  await update($, slipAtom, () => slip)
+
+  return false
+}
+
 export const register: Register = on => {
   let historyKey = Stored.historyKeyOf(null)
   let lastStampId = 0
   let lastRunId = 0
   // a store saved in a layout this release cannot read is left exactly as it is: no market, no writes
   let isLocked = false
+
   const seen = new Map<number, Seen>()
 
   on('session.start', async ($, e, next) => {
@@ -92,17 +112,7 @@ export const register: Register = on => {
       description: 'Your pass-or-bust bankroll: balance, lifetime P&L and recent bets',
     })
 
-    isLocked = Stored.layoutOf(await $.store.get(Stored.LAYOUT_KEY)) === 'unreadable'
-    if (isLocked) {
-      quietly(Promise.resolve($.ui.toast(Words.NEWER_LAYOUT, { timeoutMs: 15_000 })))
-
-      return next(e)
-    }
-
-    const bank = Stored.bankOf(await $.store.get(Stored.BANK_KEY))
-    const slip = Stored.slipOf(await $.store.get(Stored.SLIP_KEY))
-    await update($, bankAtom, () => bank)
-    await update($, slipAtom, () => slip)
+    isLocked = await load($)
 
     return next(e)
   })
@@ -149,7 +159,13 @@ export const register: Register = on => {
       runs: after.passes + after.fails,
     }))
 
-    const table = { market, slip: await read($, slipAtom), bank: await read($, bankAtom) }
+    // every session on the machine shares the store: settle on what it holds now, not on the copy this session
+    // loaded, so a result another session saved meanwhile is built on rather than overwritten
+    const table = {
+      market,
+      slip: Stored.slipOf(await $.store.get(Stored.SLIP_KEY)),
+      bank: Stored.bankOf(await $.store.get(Stored.BANK_KEY)),
+    }
     const settled = Market.settlementOf(table, outcome, e.command)
 
     // the reels stop on this outcome: the machine only shows what settled
@@ -239,8 +255,8 @@ export const register: Register = on => {
     const act = async (action: Action) => {
       const table = {
         market: await read($, marketAtom),
-        slip: await read($, slipAtom),
-        bank: await read($, bankAtom),
+        slip: Stored.slipOf(await $.store.get(Stored.SLIP_KEY)),
+        bank: Stored.bankOf(await $.store.get(Stored.BANK_KEY)),
       }
       const change: Change | null = Market.changeOf(table, action)
 
