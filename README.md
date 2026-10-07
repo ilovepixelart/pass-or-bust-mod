@@ -67,21 +67,25 @@ payouts, without the machine.
 Requires Claude Code 2.1.287 or later (mods). Developed and tested on 2.1.292.
 The house is designed for a dark Claude Code theme; on a light theme some text is hard to read.
 
-```
-/plugin marketplace add ilovepixelart/pass-or-bust-mod
-/plugin install pass-or-bust@pass-or-bust-mod
-/reload-plugins
-```
-
-That follows the latest release on `main`. To stay on one release instead,
-add the marketplace at its tag:
+From the ilovepixelart marketplace, which pins each mod to its latest release:
 
 ```
-/plugin marketplace add ilovepixelart/pass-or-bust-mod#pass-or-bust--v0.1.0
+/plugin marketplace add ilovepixelart/claude-code-mods
+/plugin install pass-or-bust@ilovepixelart
 ```
 
-To take a new release later, run `claude plugin update pass-or-bust@pass-or-bust-mod`
-in your shell. Each [release](https://github.com/ilovepixelart/pass-or-bust-mod/releases)
+Or in one line, straight from this repository, following `main`:
+
+```
+/plugin install pass-or-bust --marketplace ilovepixelart/pass-or-bust-mod
+```
+
+To stay on one release, add this repository at its tag instead:
+`/plugin marketplace add ilovepixelart/pass-or-bust-mod#pass-or-bust--v0.1.0`.
+
+Run `/reload-plugins` (or start a new session) after installing. To take a new
+release later, run `claude plugin update pass-or-bust@ilovepixelart` in your
+shell. Each [release](https://github.com/ilovepixelart/pass-or-bust-mod/releases)
 also carries a zip of the plugin for `claude --plugin-url`, and
 [CHANGELOG.md](CHANGELOG.md) lists what each one changed.
 
