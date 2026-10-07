@@ -455,6 +455,19 @@ describe('register', () => {
     expect((stored.get('bank') as { balance: number }).balance).toBe(1590)
   })
 
+  test('the stored bankroll comes back after /clear, not the default', async ($, on) => {
+    Fixtures.inSession(on)
+    recordingStore(on, {
+      bank: { balance: 1234, pnl: 234, wins: 3, losses: 1, voids: 0, bailouts: 0, streak: 1, bestStreak: 3, recent: [] },
+    })
+    on('classic.SessionStart', () => ({}))
+
+    // /clear resets every $.state value, and session.start does not fire again
+    await $.classic.SessionStart({ source: 'clear' })
+
+    expect(await paneText($)).toContain('BANKROLL   $1,234')
+  })
+
   test('a bankroll below one stake offers a bailout instead of bets', async ($, on) => {
     Fixtures.inSession(on)
     mock.store(on, {
