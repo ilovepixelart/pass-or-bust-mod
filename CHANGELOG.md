@@ -4,6 +4,16 @@ All notable changes to pass-or-bust are listed here. Versions follow
 [Semantic Versioning](https://semver.org/); while the version is 0.x, any
 release may change behaviour.
 
+## [Unreleased]
+
+### Fixed
+
+- A failing `node --test` suite run through a script runner and a pipe (`npm test 2>&1 | tail -60`) settled as a pass: with no runner named, every runner's summary was tried, and the go reader took the first word of a TAP line (`ok 1 - name`) for go's `ok <package>`. A bet on pass would have been paid on failing tests. The go reader now only accepts go's own result lines (`ok <package> <time>`, `FAIL <package> <time>`, a closing `PASS` or `FAIL`).
+
+### Added
+
+- `node --test` opens a market, and its summary (`# pass 2`, `# fail 1`, which it prints when it is not in a terminal, as under Claude) settles a piped run.
+
 ## [0.1.0] - 2026-10-07
 
 First release. Requires Claude Code 2.1.287 or later.

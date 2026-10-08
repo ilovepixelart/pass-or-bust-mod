@@ -35,6 +35,8 @@ const NOT_TEST_RUNS = [
   'echo pytest',
   'npm install',
   'npm run build',
+  'node scripts/import-orders.js',
+  'node --version',
   'grep -r "go test" .',
   'pytest-watch',
   'rm -rf node_modules/.cache/jest',
@@ -62,6 +64,7 @@ describe('is-test-run', () => {
     expect(Detect.testRunOf('bun test 2>&1 | tail -30')).toEqual({ family: 'bun', isPiped: true })
     expect(Detect.testRunOf('pytest -q 2>&1 | tee out.log | tail -n 5')).toEqual({ family: 'pytest', isPiped: true })
     expect(Detect.testRunOf('cargo test 2>&1 | cat')).toEqual({ family: 'cargo', isPiped: true })
+    expect(Detect.testRunOf('node --test 2>&1 | tail -30')).toEqual({ family: 'node', isPiped: true })
   })
 
   test('an unpiped run is marked unpiped, its exit code settles it', () => {
@@ -74,6 +77,8 @@ describe('is-test-run', () => {
     const families = {
       'bun test': 'bun',
       'deno test': 'deno',
+      'node --test': 'node',
+      'node --test test/': 'node',
       'go test ./...': 'go',
       'cargo test': 'cargo',
       'uv run pytest': 'pytest',

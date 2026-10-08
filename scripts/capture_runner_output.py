@@ -39,6 +39,14 @@ PROJECTS = {
         },
         "command": ["deno", "test"],
     },
+    "node": {
+        "needs": "node",
+        "files": {
+            PASSING: {"a.test.mjs": 'import { test } from "node:test"\nimport assert from "node:assert/strict"\ntest("a", () => assert.equal(1, 1))\ntest("b", () => assert.equal(2, 2))\n'},
+            FAILING: {"a.test.mjs": 'import { test } from "node:test"\nimport assert from "node:assert/strict"\ntest("a", () => assert.equal(1, 1))\ntest("b", () => assert.equal(0.1 + 0.2, 0.3))\n'},
+        },
+        "command": ["node", "--test"],
+    },
     "go": {
         "needs": "go",
         "files": {

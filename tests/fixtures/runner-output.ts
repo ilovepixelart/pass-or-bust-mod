@@ -7,47 +7,57 @@ export const RUNNER_OUTPUT = {
   "bun": {
     "pass": {
       "exitCode": 0,
-      "output": "bun test v1.4.2 (744846f84)\n\n 2 pass\n 0 fail\n 2 expect() calls\nRan 2 tests across 1 file. [4.00ms]"
+      "output": "bun test v1.4.2 (744846f84)\n\n 2 pass\n 0 fail\n 2 expect() calls\nRan 2 tests across 1 file. [5.00ms]"
     },
     "fail": {
       "exitCode": 1,
-      "output": "bun test v1.4.2 (744846f84)\n\na.test.ts:\nerror: expect(received).toBe(expected)\n\nExpected: 0.3\nReceived: 0.30000000000000004\n\n(fail) b [0.10ms]\n\n 1 pass\n 1 fail\n 2 expect() calls\nRan 2 tests across 1 file. [3.00ms]"
+      "output": "bun test v1.4.2 (744846f84)\n\na.test.ts:\nerror: expect(received).toBe(expected)\n\nExpected: 0.3\nReceived: 0.30000000000000004\n\n(fail) b [1.00ms]\n\n 1 pass\n 1 fail\n 2 expect() calls\nRan 2 tests across 1 file. [4.00ms]"
     }
   },
   "deno": {
     "pass": {
       "exitCode": 0,
-      "output": "Check a_test.ts\nrunning 2 tests from ./a_test.ts\na ... ok (344\u00b5s)\nb ... ok (88\u00b5s)\n\nok | 2 passed | 0 failed (2ms)\n"
+      "output": "Check a_test.ts\nrunning 2 tests from ./a_test.ts\na ... ok (202\u00b5s)\nb ... ok (21\u00b5s)\n\nok | 2 passed | 0 failed (1ms)\n"
     },
     "fail": {
       "exitCode": 1,
-      "output": "Check a_test.ts\nrunning 2 tests from ./a_test.ts\na ... ok (271\u00b5s)\nb ... FAILED (428\u00b5s)\n\n ERRORS \n\nb => ./a_test.ts:2:6\nerror: Error: boom\nDeno.test(\"b\", () => { throw new Error(\"boom\") })\n                             ^\n    at file:///scratch/deno-fail/a_test.ts:2:30\n\n FAILURES \n\nb => ./a_test.ts:2:6\n\nFAILED | 1 passed | 1 failed (2ms)\n\nerror: Test failed"
+      "output": "Check a_test.ts\nrunning 2 tests from ./a_test.ts\na ... ok (187\u00b5s)\nb ... FAILED (1ms)\n\n ERRORS \n\nb => ./a_test.ts:2:6\nerror: Error: boom\nDeno.test(\"b\", () => { throw new Error(\"boom\") })\n                             ^\n    at file:///scratch/deno-fail/a_test.ts:2:30\n\n FAILURES \n\nb => ./a_test.ts:2:6\n\nFAILED | 1 passed | 1 failed (2ms)\n\nerror: Test failed"
+    }
+  },
+  "node": {
+    "pass": {
+      "exitCode": 0,
+      "output": "TAP version 13\n# Subtest: a\nok 1 - a\n  ---\n  duration_ms: 0.42925\n  type: 'test'\n  ...\n# Subtest: b\nok 2 - b\n  ---\n  duration_ms: 0.060333\n  type: 'test'\n  ...\n1..2\n# tests 2\n# suites 0\n# pass 2\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 49.433333"
+    },
+    "fail": {
+      "exitCode": 1,
+      "output": "TAP version 13\n# Subtest: a\nok 1 - a\n  ---\n  duration_ms: 0.436708\n  type: 'test'\n  ...\n# Subtest: b\nnot ok 2 - b\n  ---\n  duration_ms: 0.450458\n  type: 'test'\n  location: '/scratch/node-fail/a.test.mjs:4:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\n    + actual - expected\n    \n    + 0.30000000000000004\n    - 0.3\n         ^\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: 0.3\n  actual: 0.30000000000000004\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (file:///scratch/node-fail/a.test.mjs:4:24)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.processPendingSubtests (node:internal/test_runner/test:744:18)\n    Test.postRun (node:internal/test_runner/test:1173:19)\n    Test.run (node:internal/test_runner/test:1101:12)\n    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)\n  ...\n1..2\n# tests 2\n# suites 0\n# pass 1\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 49.03625"
     }
   },
   "go": {
     "pass": {
       "exitCode": 0,
-      "output": "ok  \tdemo\t0.166s"
+      "output": "ok  \tdemo\t0.324s"
     },
     "fail": {
       "exitCode": 1,
-      "output": "--- FAIL: TestB (0.00s)\n    a_test.go:4: boom\nFAIL\nFAIL\tdemo\t0.246s\nFAIL"
+      "output": "--- FAIL: TestB (0.00s)\n    a_test.go:4: boom\nFAIL\nFAIL\tdemo\t0.192s\nFAIL"
     }
   },
   "cargo": {
     "pass": {
       "exitCode": 0,
-      "output": "   Compiling demo v0.1.0 (/scratch/cargo-pass)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.27s\n     Running unittests src/lib.rs (target/debug/deps/demo-39afa7a4eadb09f1)\n\nrunning 2 tests\ntest tests::a ... ok\ntest tests::b ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n   Doc-tests demo\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n"
+      "output": "   Compiling demo v0.1.0 (/scratch/cargo-pass)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.51s\n     Running unittests src/lib.rs (target/debug/deps/demo-39afa7a4eadb09f1)\n\nrunning 2 tests\ntest tests::b ... ok\ntest tests::a ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n   Doc-tests demo\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n"
     },
     "fail": {
       "exitCode": 101,
-      "output": "   Compiling demo v0.1.0 (/scratch/cargo-fail)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.33s\n     Running unittests src/lib.rs (target/debug/deps/demo-39afa7a4eadb09f1)\n\nrunning 2 tests\ntest tests::a ... ok\ntest tests::b ... FAILED\n\nfailures:\n\n---- tests::b stdout ----\n\nthread 'tests::b' (3273140) panicked at src/lib.rs:6:14:\nassertion `left == right` failed\n  left: 0.30000000000000004\n right: 0.3\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    tests::b\n\ntest result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\nerror: test failed, to rerun pass `--lib`"
+      "output": "   Compiling demo v0.1.0 (/scratch/cargo-fail)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.17s\n     Running unittests src/lib.rs (target/debug/deps/demo-39afa7a4eadb09f1)\n\nrunning 2 tests\ntest tests::a ... ok\ntest tests::b ... FAILED\n\nfailures:\n\n---- tests::b stdout ----\n\nthread 'tests::b' (38906984) panicked at src/lib.rs:6:14:\nassertion `left == right` failed\n  left: 0.30000000000000004\n right: 0.3\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    tests::b\n\ntest result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\nerror: test failed, to rerun pass `--lib`"
     }
   },
   "pytest": {
     "pass": {
       "exitCode": 0,
-      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.12.14, pytest-9.1.1, pluggy-1.6.0\nrootdir: /scratch/pytest-pass\ncollected 2 items\n\ntest_a.py ..                                                             [100%]\n\n============================== 2 passed in 0.01s ==============================="
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.12.14, pytest-9.1.1, pluggy-1.6.0\nrootdir: /scratch/pytest-pass\ncollected 2 items\n\ntest_a.py ..                                                             [100%]\n\n============================== 2 passed in 0.00s ==============================="
     },
     "fail": {
       "exitCode": 1,
@@ -57,21 +67,21 @@ export const RUNNER_OUTPUT = {
   "jest": {
     "pass": {
       "exitCode": 0,
-      "output": "PASS ./a.test.js\n  \u2713 a (1 ms)\n  \u2713 b\n\nTest Suites: 1 passed, 1 total\nTests:       2 passed, 2 total\nSnapshots:   0 total\nTime:        0.213 s\nRan all test suites."
+      "output": "PASS ./a.test.js\n  \u2713 a (2 ms)\n  \u2713 b\n\nTest Suites: 1 passed, 1 total\nTests:       2 passed, 2 total\nSnapshots:   0 total\nTime:        0.199 s\nRan all test suites."
     },
     "fail": {
       "exitCode": 1,
-      "output": "FAIL ./a.test.js\n  \u2713 a (1 ms)\n  \u2715 b (1 ms)\n\n  \u25cf b\n\n    expect(received).toBe(expected) // Object.is equality\n\n    Expected: 0.3\n    Received: 0.30000000000000004\n\n      1 | test(\"a\", () => expect(1).toBe(1))\n    > 2 | test(\"b\", () => expect(0.1 + 0.2).toBe(0.3))\n        |                                   ^\n      3 |\n\n      at Object.toBe (a.test.js:2:35)\n\nTest Suites: 1 failed, 1 total\nTests:       1 failed, 1 passed, 2 total\nSnapshots:   0 total\nTime:        0.219 s\nRan all test suites."
+      "output": "FAIL ./a.test.js\n  \u2713 a (1 ms)\n  \u2715 b (1 ms)\n\n  \u25cf b\n\n    expect(received).toBe(expected) // Object.is equality\n\n    Expected: 0.3\n    Received: 0.30000000000000004\n\n      1 | test(\"a\", () => expect(1).toBe(1))\n    > 2 | test(\"b\", () => expect(0.1 + 0.2).toBe(0.3))\n        |                                   ^\n      3 |\n\n      at Object.toBe (a.test.js:2:35)\n\nTest Suites: 1 failed, 1 total\nTests:       1 failed, 1 passed, 2 total\nSnapshots:   0 total\nTime:        0.167 s\nRan all test suites."
     }
   },
   "vitest": {
     "pass": {
       "exitCode": 0,
-      "output": "\n RUN  v3.2.7 /scratch/vitest-pass\n\n \u2713 a.test.js (2 tests) 1ms\n\n Test Files  1 passed (1)\n      Tests  2 passed (2)\n   Start at  11:15:21\n   Duration  550ms (transform 27ms, setup 0ms, collect 12ms, tests 1ms, environment 0ms, prepare 143ms)\n"
+      "output": "\n RUN  v3.2.7 /scratch/vitest-pass\n\n \u2713 a.test.js (2 tests) 1ms\n\n Test Files  1 passed (1)\n      Tests  2 passed (2)\n   Start at  16:05:07\n   Duration  203ms (transform 14ms, setup 0ms, collect 7ms, tests 1ms, environment 0ms, prepare 43ms)\n"
     },
     "fail": {
       "exitCode": 1,
-      "output": "\n RUN  v3.2.7 /scratch/vitest-fail\n\n \u276f a.test.js (2 tests | 1 failed) 5ms\n   \u2713 a 1ms\n   \u00d7 b 4ms\n     \u2192 expected 0.30000000000000004 to be 0.3 // Object.is equality\n\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af Failed Tests 1 \u23af\u23af\u23af\u23af\u23af\u23af\u23af\n\n FAIL  a.test.js > b\nAssertionError: expected 0.30000000000000004 to be 0.3 // Object.is equality\n\n- Expected\n+ Received\n\n- 0.3\n+ 0.30000000000000004\n\n \u276f a.test.js:3:35\n      1| import { test, expect } from \"vitest\"\n      2| test(\"a\", () => expect(1).toBe(1))\n      3| test(\"b\", () => expect(0.1 + 0.2).toBe(0.3))\n       |                                   ^\n      4| \n\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[1/1]\u23af\n\n\n Test Files  1 failed (1)\n      Tests  1 failed | 1 passed (2)\n   Start at  11:15:23\n   Duration  205ms (transform 11ms, setup 0ms, collect 8ms, tests 5ms, environment 0ms, prepare 41ms)\n"
+      "output": "\n RUN  v3.2.7 /scratch/vitest-fail\n\n \u276f a.test.js (2 tests | 1 failed) 4ms\n   \u2713 a 1ms\n   \u00d7 b 3ms\n     \u2192 expected 0.30000000000000004 to be 0.3 // Object.is equality\n\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af Failed Tests 1 \u23af\u23af\u23af\u23af\u23af\u23af\u23af\n\n FAIL  a.test.js > b\nAssertionError: expected 0.30000000000000004 to be 0.3 // Object.is equality\n\n- Expected\n+ Received\n\n- 0.3\n+ 0.30000000000000004\n\n \u276f a.test.js:3:35\n      1| import { test, expect } from \"vitest\"\n      2| test(\"a\", () => expect(1).toBe(1))\n      3| test(\"b\", () => expect(0.1 + 0.2).toBe(0.3))\n       |                                   ^\n      4| \n\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[1/1]\u23af\n\n\n Test Files  1 failed (1)\n      Tests  1 failed | 1 passed (2)\n   Start at  16:05:09\n   Duration  203ms (transform 10ms, setup 0ms, collect 7ms, tests 4ms, environment 0ms, prepare 32ms)\n"
     }
   }
 } as const

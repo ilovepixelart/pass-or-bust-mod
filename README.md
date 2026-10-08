@@ -113,7 +113,7 @@ x1.42 and fail pays x2.85. The constants live in
 ## What counts as a test run
 
 A Bash command with a step that starts with a known runner (`npm test`,
-`pnpm test`, `bun test`, `pytest`, `uv run pytest`, `go test`, `cargo test`,
+`pnpm test`, `bun test`, `node --test`, `pytest`, `uv run pytest`, `go test`, `cargo test`,
 `vitest`, `jest`, `make test` and friends; the full table is
 [`hooks/detect/runners.ts`](hooks/detect/runners.ts)). Leading `NAME=value`
 assignments and earlier steps (`cd app && npm test`) are fine.
@@ -125,8 +125,8 @@ Claude ran it:
 - **Piped through `tail`, `tee` or `cat`, the summary settles it.** In
   `bun test 2>&1 | tail -30` the exit code is `tail`'s, so the house reads the
   runner's own summary line instead (`1 pass` / `1 fail`, `Tests: 1 failed`,
-  `test result: FAILED`, `===== 1 failed, 1 passed =====` and so on). It reads
-  bun, deno, go, cargo, pytest, jest and vitest; the readers are in
+  `test result: FAILED`, `===== 1 failed, 1 passed =====`, `# fail 1` and so on).
+  It reads bun, deno, node, go, cargo, pytest, jest and vitest; the readers are in
   [`hooks/summary/summary-of.ts`](hooks/summary/summary-of.ts), tested against
   real output from each runner. A summary it cannot find whole (cut short by
   `tail -2`, missing, or two runners disagreeing) makes the bet void, never a

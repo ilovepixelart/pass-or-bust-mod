@@ -13,7 +13,7 @@ const FAMILIES = Object.keys(RUNNER_OUTPUT) as Family[]
 
 describe('summaryOf', () => {
   test('every runner on this machine: its real passing run is a pass, its real failing run a fail', () => {
-    expect(FAMILIES.length, 'samples captured for every runner the parser knows').toBe(7)
+    expect(FAMILIES.length, 'samples captured for every runner the parser knows').toBe(8)
 
     for (const family of FAMILIES) {
       const { pass, fail } = RUNNER_OUTPUT[family]

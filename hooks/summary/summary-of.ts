@@ -1,7 +1,7 @@
 import type { Outcome } from '../settle'
 
 /** The runners whose summary the house can read. */
-export type Family = 'bun' | 'deno' | 'go' | 'cargo' | 'pytest' | 'jest' | 'vitest'
+export type Family = 'bun' | 'deno' | 'node' | 'go' | 'cargo' | 'pytest' | 'jest' | 'vitest'
 
 /** A runner's reading of an output: its verdict, or null when its summary is not there whole. */
 type Reader = (lines: readonly string[]) => 'pass' | 'fail' | null
@@ -28,9 +28,23 @@ const READERS: Record<Family, Reader> = {
 
     return line === undefined ? null : verdictOf(countOf(line, 'passed'), countOf(line, 'failed'))
   },
-  // the last result line: `ok  <pkg>`, `FAIL <pkg>`, or the closing `FAIL`/`PASS`
+  // `node --test` without a terminal prints TAP and ends with `# pass 1` and `# fail 1`
+  node: lines => {
+    const passes = lines.findLast(line => /^# pass \d+$/.test(line))
+    const fails = lines.findLast(line => /^# fail \d+$/.test(line))
+    if (passes === undefined || fails === undefined) {
+      return null
+    }
+
+    // the count follows the word here: `# pass 2`
+    return verdictOf(Number(passes.slice('# pass '.length)), Number(fails.slice('# fail '.length)))
+  },
+  // the last result line: `ok  <pkg> 0.1s`, `FAIL <pkg> 0.1s`, a `?  <pkg>` with no test
+  // files, or the closing `FAIL`/`PASS`; never TAP's `ok 1 - name`, which other runners print
   go: lines => {
-    const line = lines.findLast(line => /^(ok|FAIL|PASS|\?)(\s|$)/.test(line))
+    const line = lines.findLast(
+      line => /^(ok|FAIL)\s+\S+\s+(\(cached\)|[\d.]+s)(\s|$)/.test(line) || /^(PASS|FAIL)$/.test(line) || /^\?\s/.test(line),
+    )
     if (line === undefined || line.startsWith('?') || line.includes('[no tests to run]')) {
       return null
     }

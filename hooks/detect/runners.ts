@@ -17,6 +17,7 @@ export const RUNNERS: readonly { words: readonly string[]; family: Family | 'any
   { words: ['bun', 'test'], family: 'bun' },
   { words: ['bun', 'run', 'test'], family: 'any' },
   { words: ['deno', 'test'], family: 'deno' },
+  { words: ['node', '--test'], family: 'node' },
   { words: ['jest'], family: 'jest' },
   { words: ['npx', 'jest'], family: 'jest' },
   { words: ['pnpm', 'jest'], family: 'jest' },
