@@ -42,13 +42,13 @@ const TAUNTS = [
 const RAN: Record<Outcome, string> = {
   pass: 'passed',
   fail: 'failed',
-  void: 'never finished',
+  void: 'gave no result',
 }
 
 /** What the toast says when a bet settles: the run, then what came back. */
 export function toastOf(stamp: Omit<Stamp, 'id'>): string {
   if (stamp.outcome === 'void') {
-    return `· REFUNDED. The run never finished, ${dollars(stamp.stake)} back.`
+    return `· REFUNDED. The run gave no result, ${dollars(stamp.stake)} back.`
   }
 
   return stamp.delta > 0

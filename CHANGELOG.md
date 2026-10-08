@@ -13,6 +13,10 @@ release may change behaviour.
 - A `|`, `&&` or `;` inside quotes split the command: in `grep -E "ok|fail"` the pattern was read as a pipe. Commands are now cut only outside quotes.
 - A heredoc's lines were read as commands, so writing `npm test` into a file with `cat <<'EOF'` opened a market, and quotes inside a heredoc body could hide the test run after it. Heredoc bodies are now skipped.
 
+### Changed
+
+- A refunded run now reads "gave no result" (`· REFUNDED. The run gave no result, $100 back.`, `Last run · no result`) instead of "never finished": a run filtered down to no summary finished, it just left nothing to settle on.
+
 ## [0.2.0] - 2026-10-08
 
 ### Fixed

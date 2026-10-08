@@ -28,7 +28,7 @@ produced. Nothing about a spin is random, and the reels decide nothing.
    up, and if you do not bet, nothing is wagered.
 3. The run finishes. The reels slow down and stop left to right on what really
    happened: `✓ ✓ ✓` for a pass, `✕ ✕ ✕` for a fail, a mixed line and
-   `REFUNDED` for a run that never finished. The third reel takes its time,
+   `REFUNDED` for a run that gave no result. The third reel takes its time,
    and lingers on the wrong symbol first.
 
    When you have a bet on, the house holds the result up to 2.5 seconds so the

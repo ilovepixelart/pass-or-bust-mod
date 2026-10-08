@@ -318,7 +318,7 @@ describe('register', () => {
     await clock.advance(7_000)
     await call
 
-    expect(toasts).toEqual(['· REFUNDED. The run never finished, $100 back.'])
+    expect(toasts).toEqual(['· REFUNDED. The run gave no result, $100 back.'])
     expect(await paneText($)).toContain('BANKROLL   $1,000')
   })
 
@@ -556,7 +556,7 @@ describe('register', () => {
     await clock.advance(7_000)
     await call
 
-    expect(toasts).toEqual(['· REFUNDED. The run never finished, $100 back.'])
+    expect(toasts).toEqual(['· REFUNDED. The run gave no result, $100 back.'])
   })
 
   test('a run piped through head opens no market: head drops the summary', async ($, on) => {

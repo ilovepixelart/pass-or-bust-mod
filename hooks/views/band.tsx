@@ -84,7 +84,7 @@ function hintOf({ Text }: Pick<Elements['terminal'], 'Text'>, hint: Hint): Rende
 const LAST = {
   pass: { mark: '✓ passed', color: Art.PALETTE.up },
   fail: { mark: '✕ failed', color: Art.PALETTE.down },
-  void: { mark: '· never finished', color: undefined },
+  void: { mark: '· no result', color: undefined },
 } as const
 
 /**
