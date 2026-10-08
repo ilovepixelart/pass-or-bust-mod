@@ -4,7 +4,7 @@ All notable changes to pass-or-bust are listed here. Versions follow
 [Semantic Versioning](https://semver.org/); while the version is 0.x, any
 release may change behaviour.
 
-## [Unreleased]
+## [0.3.1] - 2026-10-08
 
 ### Fixed
 
@@ -84,6 +84,7 @@ First release. Requires Claude Code 2.1.287 or later.
   session saves between this session's read and its save is lost.
 - Designed for a dark Claude Code theme.
 
+[0.3.1]: https://github.com/ilovepixelart/pass-or-bust-mod/releases/tag/pass-or-bust--v0.3.1
 [0.3.0]: https://github.com/ilovepixelart/pass-or-bust-mod/releases/tag/pass-or-bust--v0.3.0
 [0.2.0]: https://github.com/ilovepixelart/pass-or-bust-mod/releases/tag/pass-or-bust--v0.2.0
 [0.1.0]: https://github.com/ilovepixelart/pass-or-bust-mod/releases/tag/pass-or-bust--v0.1.0

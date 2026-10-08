@@ -84,7 +84,7 @@ To stay on one release, add this repository at its tag instead, then install
 from it:
 
 ```
-/plugin marketplace add ilovepixelart/pass-or-bust-mod#pass-or-bust--v0.3.0
+/plugin marketplace add ilovepixelart/pass-or-bust-mod#pass-or-bust--v0.3.1
 /plugin install pass-or-bust@pass-or-bust-mod
 ```
 
