@@ -4,7 +4,7 @@
 
 I bet against my own AI's tests. The house always wins. Except when it's 0.1 + 0.2.
 
-![The pass-or-bust slot machine: the reels spin while Claude runs the tests, stop on a real fail, and a bet on fail cashes out](assets/demo.gif)
+![The pass-or-bust slot machine: the tests fail with no money on them, a standing bet goes on pass, Claude fixes the duplicated orders and runs the tests again, and the reels stop on a real pass that cashes out](assets/demo.gif)
 
 A Claude Code mod that turns every test run into a slot machine. You bet fake
 credits on pass or fail, the reels spin while the tests run, and the run's real
