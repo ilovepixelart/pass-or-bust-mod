@@ -45,3 +45,9 @@ export const RUNNERS: readonly { words: readonly string[]; family: Family | 'any
  * the end of the output, where every runner prints its summary.
  */
 export const PIPE_READERS: readonly string[] = ['tail', 'tee', 'cat']
+
+/**
+ * What a run may be filtered through and still settle from its output: each keeps
+ * or drops whole lines, so a summary it keeps is the runner's own.
+ */
+export const LINE_FILTERS: readonly string[] = ['grep', 'egrep']

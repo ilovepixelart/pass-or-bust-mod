@@ -131,8 +131,16 @@ Claude ran it:
   real output from each runner. A summary it cannot find whole (cut short by
   `tail -2`, missing, or two runners disagreeing) makes the bet void, never a
   guess.
-- **Piped into anything else, no market opens.** `head` drops the summary and
-  `grep` keeps whatever it likes, so the house cannot settle those honestly.
+- **Filtered through `grep`, the summary settles it only if it survived whole.**
+  Claude often checks a fix with `npm test 2>&1 | grep -E "^(not )?ok|^# (pass|fail)"`.
+  grep keeps or drops whole lines, so the house reads only the summaries a
+  dropped line cannot turn into a pass: one line holding every count (deno,
+  pytest, jest, vitest), or a pass count and a fail count both required (bun,
+  node). Lose the fail count and the bet is void. go and cargo read a pass off
+  lines that are not there, so a go or cargo run through grep opens no market,
+  and neither does `grep -o`, which keeps parts of lines.
+- **Piped into anything else, no market opens.** `head` drops the summary, so
+  the house cannot settle it honestly.
 - **Background runs open no market**, since their result arrives later.
 - **A run that never finishes** (interrupted, timed out, refused) is void, and
   the stake comes back.

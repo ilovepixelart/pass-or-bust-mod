@@ -53,6 +53,14 @@ describe('outcome-of', () => {
     expect(Settle.pipedOutcomeOf(passing, 'any')).toBe('pass')
   })
 
+  test('a filtered run settles only on a summary a filter cannot half-hide', () => {
+    const goKept = Fixtures.pipedResult('ok  \tdemo/a\t0.10s')
+
+    expect(Settle.pipedOutcomeOf(Fixtures.pipedResult(RUNNER_OUTPUT.node.fail.output), 'any', true)).toBe('fail')
+    expect(Settle.pipedOutcomeOf(goKept, 'any')).toBe('pass')
+    expect(Settle.pipedOutcomeOf(goKept, 'any', true)).toBe('void')
+  })
+
   test('a piped run with no summary in its output is void', () => {
     expect(Settle.pipedOutcomeOf(Fixtures.pipedResult('3 files changed'), 'any')).toBe('void')
   })

@@ -516,6 +516,49 @@ describe('register', () => {
     expect(toasts).toEqual(['✓ CASHED OUT. Tests failed, +$90.'])
   })
 
+  test('a run piped through grep settles on the summary grep kept', async ($, on) => {
+    Fixtures.inSession(on)
+    mock.store(on)
+    const clock = mock.clock(on)
+    const toasts = toastsOf(on)
+    const tool = Fixtures.heldTool(on)
+    const kept = RUNNER_OUTPUT.node.fail.output
+      .split('\n')
+      .filter(line => /^(not )?ok|^# (pass|fail)/.test(line))
+      .join('\n')
+
+    await $.session.start(Fixtures.SESSION)
+    const call = $.tool.call({ tool: 'Bash', command: 'npm test 2>&1 | grep -E "^(not )?ok|^# (pass|fail)"' })
+    await tool.reached
+    await untilRunning($)
+    await press($, 'bet-fail')
+    tool.release(Fixtures.pipedResult(kept))
+    await clock.advance(7_000)
+    await call
+
+    expect(toasts).toEqual(['✓ CASHED OUT. Tests failed, +$90.'])
+  })
+
+  test('a run piped through grep never pays on a summary grep could have half-hidden', async ($, on) => {
+    Fixtures.inSession(on)
+    mock.store(on)
+    const clock = mock.clock(on)
+    const toasts = toastsOf(on)
+    const tool = Fixtures.heldTool(on)
+
+    await $.session.start(Fixtures.SESSION)
+    // grep ^ok keeps go's passing packages and drops any FAIL line
+    const call = $.tool.call({ tool: 'Bash', command: 'npm test 2>&1 | grep "^ok"' })
+    await tool.reached
+    await untilRunning($)
+    await press($, 'bet-pass')
+    tool.release(Fixtures.pipedResult('ok  \tdemo/a\t0.10s'))
+    await clock.advance(7_000)
+    await call
+
+    expect(toasts).toEqual(['· REFUNDED. The run never finished, $100 back.'])
+  })
+
   test('a run piped through head opens no market: head drops the summary', async ($, on) => {
     Fixtures.inSession(on)
     mock.store(on)

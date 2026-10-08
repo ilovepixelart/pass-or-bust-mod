@@ -9,6 +9,16 @@ tier('user')
 /** What `tail -n count` leaves of an output. */
 const tail = (output: string, count: number) => output.split('\n').slice(-count).join('\n')
 
+/** What `grep -E pattern` leaves of an output: the whole lines that match. */
+const grep = (output: string, pattern: RegExp) =>
+  output
+    .split('\n')
+    .filter(line => pattern.test(line))
+    .join('\n')
+
+/** The filter Claude pipes a node suite through to check its fix. */
+const CLAUDE_FILTER = /^(not )?ok|^# (pass|fail)/
+
 const FAMILIES = Object.keys(RUNNER_OUTPUT) as Family[]
 
 describe('summaryOf', () => {
@@ -82,6 +92,46 @@ describe('summaryOf', () => {
     const output = 'ok  \tdemo/a\t0.10s\nFAIL\tdemo/b\t0.20s\nok  \tdemo/c\t0.10s\nFAIL'
 
     expect(Summary.summaryOf(output, 'go')).toBe('fail')
+  })
+
+  test('a run through grep that keeps the whole summary settles on it', () => {
+    const { pass, fail } = RUNNER_OUTPUT.node
+    expect(Summary.summaryOf(grep(fail.output, CLAUDE_FILTER), 'any', true)).toBe('fail')
+    expect(Summary.summaryOf(grep(pass.output, CLAUDE_FILTER), 'any', true)).toBe('pass')
+    expect(Summary.summaryOf(grep(RUNNER_OUTPUT.jest.fail.output, /passed/), 'any', true)).toBe('fail')
+    expect(Summary.summaryOf(grep(RUNNER_OUTPUT.pytest.fail.output, /passed|failed/), 'pytest', true)).toBe('fail')
+  })
+
+  test('a run through grep that dropped the fail count is void, never a pass', () => {
+    // `# pass 1` survives, `# fail 1` does not
+    expect(Summary.summaryOf(grep(RUNNER_OUTPUT.node.fail.output, /^# pass/), 'any', true)).toBe('void')
+    expect(Summary.summaryOf(grep(RUNNER_OUTPUT.bun.fail.output, /pass|Ran/), 'bun', true)).toBe('void')
+  })
+
+  test('a filtered run never settles on go or cargo, whose summaries a filter can half-hide', () => {
+    // grep ^ok dropped the FAIL line of demo/b; unfiltered, this output is a pass
+    const goKept = 'ok  \tdemo/a\t0.10s\nok  \tdemo/c\t0.10s'
+    const cargoKept = 'test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s'
+
+    expect(Summary.summaryOf(goKept, 'any')).toBe('pass')
+    expect(Summary.summaryOf(goKept, 'any', true)).toBe('void')
+    expect(Summary.summaryOf(cargoKept, 'any')).toBe('pass')
+    expect(Summary.summaryOf(cargoKept, 'any', true)).toBe('void')
+  })
+
+  test('grep --color=always around a count changes nothing', () => {
+    // what /usr/bin/grep --color=always failed prints: the match wrapped in color and erase-line codes
+    const colored = 'Tests:       1 \u001b[01;31m\u001b[Kfailed\u001b[m\u001b[K, 1 passed, 2 total'
+
+    expect(Summary.summaryOf(colored, 'any', true)).toBe('fail')
+  })
+
+  test('several summaries in one output (a workspace run) fail when any of them failed', () => {
+    expect(Summary.summaryOf('Tests:       1 failed, 1 passed, 2 total\nTests:       2 passed, 2 total', 'any', true)).toBe('fail')
+    expect(Summary.summaryOf('# pass 1\n# fail 1\n# pass 2\n# fail 0', 'node')).toBe('fail')
+    expect(Summary.summaryOf('===== 1 failed in 0.02s =====\n===== 3 passed in 0.02s =====', 'pytest')).toBe('fail')
+    expect(Summary.summaryOf('      Tests  1 failed | 1 passed (2)\n      Tests  2 passed (2)', 'vitest')).toBe('fail')
+    expect(Summary.summaryOf('FAILED | 1 passed | 1 failed (2ms)\nok | 2 passed | 0 failed (2ms)', 'deno')).toBe('fail')
   })
 
   test('color codes in the output change nothing', () => {

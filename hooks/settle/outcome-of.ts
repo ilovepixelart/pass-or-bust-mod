@@ -47,14 +47,15 @@ export function outcomeOf(ran: ToolCallResult): Outcome {
  *
  * @param ran what `next(e)` resolved to for the Bash call
  * @param family the runner the command named, or `any`
+ * @param isFiltered whether the pipe ran through a line filter (`grep`)
  * @returns `pass`, `fail` or `void`
  */
-export function pipedOutcomeOf(ran: ToolCallResult, family: Family | 'any'): Outcome {
+export function pipedOutcomeOf(ran: ToolCallResult, family: Family | 'any', isFiltered = false): Outcome {
   if (ran.deny !== undefined || isInterrupted(ran.result) || wasInterrupted(ran)) {
     return 'void'
   }
 
-  return summaryOf(outputOf(ran), family)
+  return summaryOf(outputOf(ran), family, isFiltered)
 }
 
 /** What the run printed: stdout and stderr from core's record, else the answer's text. */

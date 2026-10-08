@@ -4,6 +4,15 @@ All notable changes to pass-or-bust are listed here. Versions follow
 [Semantic Versioning](https://semver.org/); while the version is 0.x, any
 release may change behaviour.
 
+## [Unreleased]
+
+### Fixed
+
+- A test run piped through `grep` never settled: no market opened, so a bet placed between runs stood through it and waited for the next unfiltered run. Claude checks its fixes this way (`npm test 2>&1 | grep -E "^(not )?ok|^# (pass|fail)"`). Such a run now settles on the summary grep kept, read only by runners whose summary a dropped line cannot turn into a pass (bun, deno, node, pytest, jest, vitest); without a whole summary it is void. go and cargo runs through grep, and `grep -o`, still open no market.
+- An output holding several summaries (a workspace running one suite per package) settled on the last one, so a failing package followed by a passing one paid a bet on pass. Every summary in the output now counts, and one failing summary fails the run.
+- A `|`, `&&` or `;` inside quotes split the command: in `grep -E "ok|fail"` the pattern was read as a pipe. Commands are now cut only outside quotes.
+- A heredoc's lines were read as commands, so writing `npm test` into a file with `cat <<'EOF'` opened a market, and quotes inside a heredoc body could hide the test run after it. Heredoc bodies are now skipped.
+
 ## [0.2.0] - 2026-10-08
 
 ### Fixed

@@ -6,9 +6,23 @@ export type Family = 'bun' | 'deno' | 'node' | 'go' | 'cargo' | 'pytest' | 'jest
 /** A runner's reading of an output: its verdict, or null when its summary is not there whole. */
 type Reader = (lines: readonly string[]) => 'pass' | 'fail' | null
 
-const ANSI = /\u001b\[[0-9;]*m/g
+// every CSI sequence: colors, and the erase-line `\u001b[K` grep --color puts inside a match
+const ANSI = /\u001b\[[0-9;]*[A-Za-z]/g
 
 const countOf = (line: string, word: string) => Number(new RegExp(`(\\d+) ${word}`).exec(line)?.[1] ?? 0)
+
+const sumOf = (lines: readonly string[], count: (line: string) => number) => lines.reduce((sum, line) => sum + count(line), 0)
+
+/**
+ * The verdict over every summary line `pattern` finds, counts added up: an
+ * output can hold several (a workspace runs one suite per package), and one
+ * failing summary fails the run.
+ */
+function verdictOfAll(lines: readonly string[], pattern: RegExp, failed: (line: string) => number): 'pass' | 'fail' | null {
+  const found = lines.filter(line => pattern.test(line))
+
+  return found.length === 0 ? null : verdictOf(sumOf(found, line => countOf(line, 'passed')), sumOf(found, failed))
+}
 
 /** Each runner's summary, read off the lines a real run prints last. */
 const READERS: Record<Family, Reader> = {
@@ -23,21 +37,17 @@ const READERS: Record<Family, Reader> = {
     return verdictOf(countOf(passes, 'pass'), countOf(fails, 'fail'))
   },
   // `ok | 2 passed | 0 failed (2ms)` or `FAILED | 1 passed | 1 failed (2ms)`
-  deno: lines => {
-    const line = lines.findLast(line => /^(ok|FAILED) \| \d+ passed .*\| \d+ failed/.test(line))
-
-    return line === undefined ? null : verdictOf(countOf(line, 'passed'), countOf(line, 'failed'))
-  },
+  deno: lines => verdictOfAll(lines, /^(ok|FAILED) \| \d+ passed .*\| \d+ failed/, line => countOf(line, 'failed')),
   // `node --test` without a terminal prints TAP and ends with `# pass 1` and `# fail 1`
   node: lines => {
-    const passes = lines.findLast(line => /^# pass \d+$/.test(line))
-    const fails = lines.findLast(line => /^# fail \d+$/.test(line))
-    if (passes === undefined || fails === undefined) {
+    const passes = lines.filter(line => /^# pass \d+$/.test(line))
+    const fails = lines.filter(line => /^# fail \d+$/.test(line))
+    if (passes.length === 0 || fails.length === 0) {
       return null
     }
 
     // the count follows the word here: `# pass 2`
-    return verdictOf(Number(passes.slice('# pass '.length)), Number(fails.slice('# fail '.length)))
+    return verdictOf(sumOf(passes, line => Number(line.slice('# pass '.length))), sumOf(fails, line => Number(line.slice('# fail '.length))))
   },
   // the last result line: `ok  <pkg> 0.1s`, `FAIL <pkg> 0.1s`, a `?  <pkg>` with no test
   // files, or the closing `FAIL`/`PASS`; never TAP's `ok 1 - name`, which other runners print
@@ -61,29 +71,27 @@ const READERS: Record<Family, Reader> = {
       return null
     }
 
-    return verdictOf(
-      results.reduce((sum, line) => sum + countOf(line, 'passed'), 0),
-      results.reduce((sum, line) => sum + countOf(line, 'failed'), 0),
-    )
+    return verdictOf(sumOf(results, line => countOf(line, 'passed')), sumOf(results, line => countOf(line, 'failed')))
   },
   // `===== 1 failed, 1 passed in 0.02s =====`, or `1 failed, 1 passed in 0.02s` under -q
-  pytest: lines => {
-    const line = lines.findLast(line => /^=*\s*(\d+ \w+(, )?)+ in [\d.]+s\b/.test(line))
-
-    return line === undefined ? null : verdictOf(countOf(line, 'passed'), countOf(line, 'failed') + countOf(line, 'errors?'))
-  },
+  pytest: lines => verdictOfAll(lines, /^=*\s*(\d+ \w+(, )?)+ in [\d.]+s\b/, line => countOf(line, 'failed') + countOf(line, 'errors?')),
   // `Tests:       1 failed, 1 passed, 2 total`
-  jest: lines => {
-    const line = lines.findLast(line => /^Tests:\s+.*\d+ total$/.test(line))
-
-    return line === undefined ? null : verdictOf(countOf(line, 'passed'), countOf(line, 'failed'))
-  },
+  jest: lines => verdictOfAll(lines, /^Tests:\s+.*\d+ total$/, line => countOf(line, 'failed')),
   // `      Tests  1 failed | 1 passed (2)`
-  vitest: lines => {
-    const line = lines.findLast(line => /^\s*Tests\s+.*\(\d+\)$/.test(line))
+  vitest: lines => verdictOfAll(lines, /^\s*Tests\s+.*\(\d+\)$/, line => countOf(line, 'failed')),
+}
 
-    return line === undefined ? null : verdictOf(countOf(line, 'passed'), countOf(line, 'failed'))
-  },
+/**
+ * The runners whose summary a line filter (`grep`) cannot half-hide: one line
+ * holding every count, or a pass line and a fail line both required. go reads
+ * a pass off the absence of a `FAIL` line and cargo adds up a line per test
+ * binary, so a filter that drops one line turns their fail into a pass.
+ */
+const FILTERABLE: readonly Family[] = ['bun', 'deno', 'node', 'pytest', 'jest', 'vitest']
+
+/** Whether a run of this runner, piped through a line filter, can still settle on its summary. */
+export function isFilterable(family: Family | 'any'): boolean {
+  return family === 'any' || FILTERABLE.includes(family)
 }
 
 /**
@@ -96,10 +104,12 @@ const READERS: Record<Family, Reader> = {
  *
  * @param output what the run printed, stdout and stderr together
  * @param family the runner the command named, or `any` for one that names none (`npm test`)
+ * @param isFiltered whether a line filter may have dropped lines: then only FILTERABLE runners' summaries count
  */
-export function summaryOf(output: string, family: Family | 'any'): Outcome {
+export function summaryOf(output: string, family: Family | 'any', isFiltered = false): Outcome {
   const lines = output.replace(ANSI, '').split('\n').map(line => line.trimEnd())
-  const families = family === 'any' ? (Object.keys(READERS) as Family[]) : [family]
+  const named = family === 'any' ? (Object.keys(READERS) as Family[]) : [family]
+  const families = isFiltered ? named.filter(each => FILTERABLE.includes(each)) : named
   const verdicts = new Set(families.map(each => READERS[each](lines)).filter(verdict => verdict !== null))
 
   return verdicts.size === 1 ? [...verdicts][0] ?? 'void' : 'void'
