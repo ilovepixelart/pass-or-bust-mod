@@ -4,7 +4,7 @@ All notable changes to pass-or-bust are listed here. Versions follow
 [Semantic Versioning](https://semver.org/); while the version is 0.x, any
 release may change behaviour.
 
-## [Unreleased]
+## [0.3.0] - 2026-10-08
 
 ### Fixed
 

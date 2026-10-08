@@ -81,7 +81,7 @@ Or in one line, straight from this repository, following `main`:
 ```
 
 To stay on one release, add this repository at its tag instead:
-`/plugin marketplace add ilovepixelart/pass-or-bust-mod#pass-or-bust--v0.2.0`.
+`/plugin marketplace add ilovepixelart/pass-or-bust-mod#pass-or-bust--v0.3.0`.
 
 Run `/reload-plugins` (or start a new session) after installing. To take a new
 release later, run `claude plugin update pass-or-bust@ilovepixelart` in your
