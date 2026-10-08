@@ -1,7 +1,7 @@
 {
   "name": "pass-or-bust",
   "displayName": "Pass or Bust",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Slots for your test runs: the reels spin while Claude runs the tests and stop on the real result. Fake credits only.",
   "author": {
     "name": "ilovepixelart",
