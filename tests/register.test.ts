@@ -559,6 +559,37 @@ describe('register', () => {
     expect(toasts).toEqual(['· REFUNDED. The run gave no result, $100 back.'])
   })
 
+  test('a run with a command after it settles on the summary it printed, not the exit code', async ($, on) => {
+    Fixtures.inSession(on)
+    mock.store(on)
+    const clock = mock.clock(on)
+    const toasts = toastsOf(on)
+    const tool = Fixtures.heldTool(on)
+
+    await $.session.start(Fixtures.SESSION)
+    // the tests fail; echo answers 0
+    const call = $.tool.call({ tool: 'Bash', command: 'npm test || echo failed' })
+    await tool.reached
+    await untilRunning($)
+    await press($, 'bet-pass')
+    tool.release(Fixtures.pipedResult(RUNNER_OUTPUT.node.fail.output))
+    await clock.advance(7_000)
+    await call
+
+    expect(toasts).toEqual(['✕ BUSTED. Tests failed, -$100.'])
+  })
+
+  test('a run sent to the background with & opens no market: the shell answers before the tests run', async ($, on) => {
+    Fixtures.inSession(on)
+    mock.store(on)
+    answering(on, Fixtures.PASSED)
+
+    await $.session.start(Fixtures.SESSION)
+    await $.tool.call({ tool: 'Bash', command: 'npm test &' })
+
+    expect(await bandText($), 'the band draws nothing of ours').toBe('')
+  })
+
   test('a run piped through head opens no market: head drops the summary', async ($, on) => {
     Fixtures.inSession(on)
     mock.store(on)

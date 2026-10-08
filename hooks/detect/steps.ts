@@ -10,21 +10,25 @@ const WORD_BREAK = /[\s;&|()]/
 /** The line that ends a heredoc's body; after `<<-` it may be indented with tabs. */
 type Delimiter = { word: string; isDashed: boolean }
 
-type Token = { kind: 'text' | 'pipe' | 'step' | 'line'; end: number; delimiter?: Delimiter }
+type Token = { kind: 'text' | 'pipe' | 'step' | 'background' | 'line'; end: number; delimiter?: Delimiter }
+
+/** One step of a command: the stages of its pipeline, and whether a lone `&` sent it to the background. */
+export type Step = { stages: string[]; isBackground: boolean }
 
 /**
- * A shell command cut into its steps, at `&&`, `||`, `;` and newlines, and each
- * step into the stages of its pipeline, at `|`.
+ * A shell command cut into its steps, at `&&`, `||`, `;`, a lone `&` and
+ * newlines, and each step into the stages of its pipeline, at `|`. A `&` in a
+ * redirection (`2>&1`, `&>log`, `>&2`) cuts nothing.
  *
  * Quoted text is never cut: in `grep -E "ok|fail"` the `|` is the pattern's. A
  * heredoc's lines are data, not commands, so they belong to no step, and a
  * comment runs to the end of its line, apostrophes and all.
  *
  * @param command the Bash command as Claude wrote it
- * @returns each step's stages, in order
+ * @returns each step, in order
  */
-export function stepsOf(command: string): string[][] {
-  const steps: string[][] = []
+export function stepsOf(command: string): Step[] {
+  const steps: Step[] = []
   let stages: string[] = []
   let stage = ''
   let delimiters: Delimiter[] = []
@@ -38,8 +42,8 @@ export function stepsOf(command: string): string[][] {
       stages.push(stage)
       stage = ''
     }
-    if (token.kind === 'step' || token.kind === 'line') {
-      steps.push(stages)
+    if (token.kind !== 'text' && token.kind !== 'pipe') {
+      steps.push({ stages, isBackground: token.kind === 'background' })
       stages = []
     }
     if (token.delimiter !== undefined) {
@@ -50,7 +54,7 @@ export function stepsOf(command: string): string[][] {
   }
 
   stages.push(stage)
-  steps.push(stages)
+  steps.push({ stages, isBackground: false })
 
   return steps
 }
@@ -77,6 +81,9 @@ function tokenAt(command: string, at: number): Token {
   const separator = SEPARATORS.find(each => command.startsWith(each, at))
   if (separator !== undefined) {
     return { kind: 'step', end: at + separator.length }
+  }
+  if (char === '&' && !/[<>|]/.test(command[at - 1] ?? '') && command[at + 1] !== '>') {
+    return { kind: 'background', end: at + 1 }
   }
 
   return { kind: char === '|' ? 'pipe' : 'text', end: at + 1 }

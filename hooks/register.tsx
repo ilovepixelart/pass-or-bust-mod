@@ -154,7 +154,7 @@ export const register: Register = on => {
     await update($, isHiddenAtom, () => false)
 
     const ran = await running
-    const outcome = testRun.isPiped ? Settle.pipedOutcomeOf(ran, testRun.family, testRun.isFiltered) : Settle.outcomeOf(ran)
+    const outcome = testRun.settlesOnSummary ? Settle.pipedOutcomeOf(ran, testRun.family, testRun.isFiltered) : Settle.outcomeOf(ran)
 
     const after = Odds.recordOf(Stored.historyOf(await $.store.get(historyKey)), outcome)
     await save($, [[historyKey, after]])

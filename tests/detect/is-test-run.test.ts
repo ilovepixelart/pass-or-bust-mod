@@ -42,6 +42,15 @@ const NOT_TEST_RUNS = [
   'rm -rf node_modules/.cache/jest',
   // head keeps the start and drops the summary
   'pytest 2>&1 | head',
+  // in the background: the shell answers at once, before any test has run
+  'npm test &',
+  'npm test & wait',
+  'bun test 2>&1 &',
+  'cd app && npm test &',
+  // grep -v drops the lines it names, and a failing summary is the likeliest to be named
+  'npm test 2>&1 | grep -v FAILED',
+  'npm test 2>&1 | grep -vE "^# (todo|skipped)"',
+  'npm test 2>&1 | grep --invert-match duration',
   // go infers a pass from no FAIL line and cargo adds up a line per binary: a filter can hide a failure
   'go test ./... | grep FAIL',
   'cargo test 2>&1 | grep "test result"',
@@ -85,7 +94,7 @@ describe('is-test-run', () => {
   })
 
   test('a run piped only through tail, tee or cat opens a market, marked piped', () => {
-    const whole = { isPiped: true, isFiltered: false }
+    const whole = { settlesOnSummary: true, isFiltered: false }
     expect(Detect.testRunOf('npm test | tail -20')).toEqual({ family: 'any', ...whole })
     expect(Detect.testRunOf('bun test 2>&1 | tail -30')).toEqual({ family: 'bun', ...whole })
     expect(Detect.testRunOf('pytest -q 2>&1 | tee out.log | tail -n 5')).toEqual({ family: 'pytest', ...whole })
@@ -94,30 +103,44 @@ describe('is-test-run', () => {
   })
 
   test('a run piped through grep opens a market, marked filtered', () => {
-    const filtered = { isPiped: true, isFiltered: true }
+    const filtered = { settlesOnSummary: true, isFiltered: true }
     expect(Detect.testRunOf('npm test 2>&1 | grep -E "^(not )?ok|^# (pass|fail)"')).toEqual({ family: 'any', ...filtered })
     expect(Detect.testRunOf('npm test | tail -20 | grep passed')).toEqual({ family: 'any', ...filtered })
-    expect(Detect.testRunOf('node --test 2>&1 | egrep -v "^ +duration_ms"')).toEqual({ family: 'node', ...filtered })
+    expect(Detect.testRunOf('node --test 2>&1 | egrep "^# (pass|fail)"')).toEqual({ family: 'node', ...filtered })
     expect(Detect.testRunOf('pytest -q 2>&1 | grep -E "passed|failed" | tail -3')).toEqual({ family: 'pytest', ...filtered })
   })
 
   test('the run after heredocs and quoted pipes is found where Claude ran it', () => {
-    expect(Detect.testRunOf(FIX_THEN_TEST)).toEqual({ family: 'any', isPiped: true, isFiltered: true })
-    expect(Detect.testRunOf('echo "build | lint" && npm test')).toEqual({ family: 'any', isPiped: false, isFiltered: false })
+    expect(Detect.testRunOf(FIX_THEN_TEST)).toEqual({ family: 'any', settlesOnSummary: true, isFiltered: true })
+    expect(Detect.testRunOf('echo "build | lint" && npm test')).toEqual({ family: 'any', settlesOnSummary: false, isFiltered: false })
     // the body ends at its own word, and the run after it counts
-    expect(Detect.testRunOf('cat > notes.md <<\\EOF\nnotes\nEOF\nnpm test')).toEqual({ family: 'any', isPiped: false, isFiltered: false })
-    expect(Detect.testRunOf("cat > notes.md <<-'END-NOTE'\n\tnotes\n\tEND-NOTE\nnpm test")).toEqual({ family: 'any', isPiped: false, isFiltered: false })
+    expect(Detect.testRunOf('cat > notes.md <<\\EOF\nnotes\nEOF\nnpm test')).toEqual({ family: 'any', settlesOnSummary: false, isFiltered: false })
+    expect(Detect.testRunOf("cat > notes.md <<-'END-NOTE'\n\tnotes\n\tEND-NOTE\nnpm test")).toEqual({ family: 'any', settlesOnSummary: false, isFiltered: false })
     // an apostrophe in a comment opens no quote
-    expect(Detect.testRunOf("# run the suite, it's quick\nnpm test 2>&1 | grep -E 'Tests:'")).toEqual({ family: 'any', isPiped: true, isFiltered: true })
+    expect(Detect.testRunOf("# run the suite, it's quick\nnpm test 2>&1 | grep -E 'Tests:'")).toEqual({ family: 'any', settlesOnSummary: true, isFiltered: true })
     // in $'...' a backslash escapes the quote, so the pipe after it is a pipe
-    expect(Detect.testRunOf("npm test -- -t $'it\\'s' | grep -v x")).toEqual({ family: 'any', isPiped: true, isFiltered: true })
+    expect(Detect.testRunOf("npm test -- -t $'it\\'s' | grep -E '^# (pass|fail)'")).toEqual({ family: 'any', settlesOnSummary: true, isFiltered: true })
   })
 
-  test('an unpiped run is marked unpiped, its exit code settles it', () => {
-    const unpiped = { isPiped: false, isFiltered: false }
-    expect(Detect.testRunOf('bun test')).toEqual({ family: 'bun', ...unpiped })
-    expect(Detect.testRunOf('cd app && npm test')).toEqual({ family: 'any', ...unpiped })
-    expect(Detect.testRunOf('npm test || echo failed')).toEqual({ family: 'any', ...unpiped })
+  test('a run that is the last command settles on its exit code', () => {
+    const exitCode = { settlesOnSummary: false, isFiltered: false }
+    expect(Detect.testRunOf('bun test')).toEqual({ family: 'bun', ...exitCode })
+    expect(Detect.testRunOf('cd app && npm test')).toEqual({ family: 'any', ...exitCode })
+    // redirections are not background runs
+    expect(Detect.testRunOf('npm test 2>&1')).toEqual({ family: 'any', ...exitCode })
+    expect(Detect.testRunOf('npm test &> test.log')).toEqual({ family: 'any', ...exitCode })
+    expect(Detect.testRunOf('npm test >&2')).toEqual({ family: 'any', ...exitCode })
+    // nothing runs after a trailing newline or a comment
+    expect(Detect.testRunOf('npm test\n')).toEqual({ family: 'any', ...exitCode })
+    expect(Detect.testRunOf('npm test\n# that was all')).toEqual({ family: 'any', ...exitCode })
+  })
+
+  test('a run with a command after it settles on its summary: the exit code is the last command\'s', () => {
+    const summary = { settlesOnSummary: true, isFiltered: false }
+    expect(Detect.testRunOf('npm test || echo failed')).toEqual({ family: 'any', ...summary })
+    expect(Detect.testRunOf('npm test; git status')).toEqual({ family: 'any', ...summary })
+    expect(Detect.testRunOf('npm test && git push')).toEqual({ family: 'any', ...summary })
+    expect(Detect.testRunOf('npm test\ngit status --short')).toEqual({ family: 'any', ...summary })
   })
 
   test('each runner names the summary it prints; a script runner names none', () => {

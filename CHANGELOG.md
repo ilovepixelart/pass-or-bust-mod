@@ -4,6 +4,14 @@ All notable changes to pass-or-bust are listed here. Versions follow
 [Semantic Versioning](https://semver.org/); while the version is 0.x, any
 release may change behaviour.
 
+## [Unreleased]
+
+### Fixed
+
+- A test run followed by another command settled on that command's exit code: `npm test || echo failed` and `npm test; git status` answer 0 when the tests fail, so a bet on pass was paid on failing tests. A test run that is not the last command now settles on its summary, as a piped run does.
+- A test run sent to the background with `&` (`npm test &`) opened a market, and the shell's immediate 0 settled it as a pass before any test ran. Such a run now opens no market.
+- A run filtered through `grep -v` or `--invert-match` settled on the summaries left after grep dropped the lines it named, which can be a failing suite's. Such a run now opens no market.
+
 ## [0.3.0] - 2026-10-08
 
 ### Fixed
@@ -75,3 +83,7 @@ First release. Requires Claude Code 2.1.287 or later.
 - Sessions share one store and it has no atomic update: a result another
   session saves between this session's read and its save is lost.
 - Designed for a dark Claude Code theme.
+
+[0.3.0]: https://github.com/ilovepixelart/pass-or-bust-mod/releases/tag/pass-or-bust--v0.3.0
+[0.2.0]: https://github.com/ilovepixelart/pass-or-bust-mod/releases/tag/pass-or-bust--v0.2.0
+[0.1.0]: https://github.com/ilovepixelart/pass-or-bust-mod/releases/tag/pass-or-bust--v0.1.0

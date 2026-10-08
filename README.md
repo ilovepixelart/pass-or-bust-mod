@@ -80,12 +80,17 @@ Or in one line, straight from this repository, following `main`:
 /plugin install pass-or-bust --marketplace ilovepixelart/pass-or-bust-mod
 ```
 
-To stay on one release, add this repository at its tag instead:
-`/plugin marketplace add ilovepixelart/pass-or-bust-mod#pass-or-bust--v0.3.0`.
+To stay on one release, add this repository at its tag instead, then install
+from it:
+
+```
+/plugin marketplace add ilovepixelart/pass-or-bust-mod#pass-or-bust--v0.3.0
+/plugin install pass-or-bust@pass-or-bust-mod
+```
 
 Run `/reload-plugins` (or start a new session) after installing. To take a new
 release later, run `claude plugin update pass-or-bust@ilovepixelart` in your
-shell. Each [release](https://github.com/ilovepixelart/pass-or-bust-mod/releases)
+shell, or `pass-or-bust@pass-or-bust-mod` if you installed from this repository. Each [release](https://github.com/ilovepixelart/pass-or-bust-mod/releases)
 also carries a zip of the plugin for `claude --plugin-url`, and
 [CHANGELOG.md](CHANGELOG.md) lists what each one changed.
 
@@ -121,7 +126,11 @@ assignments and earlier steps (`cd app && npm test`) are fine.
 The house never changes what Claude runs. How a run settles depends on how
 Claude ran it:
 
-- **Unpiped, the exit code settles it.** 0 is a pass, anything else a fail.
+- **As the last command, its exit code settles it.** 0 is a pass, anything else
+  a fail.
+- **With a command after it, the summary settles it.** In
+  `npm test || echo failed` or `npm test; git status` the exit code is the last
+  command's, so the house reads the summary, as for a pipe below.
 - **Piped through `tail`, `tee` or `cat`, the summary settles it.** In
   `bun test 2>&1 | tail -30` the exit code is `tail`'s, so the house reads the
   runner's own summary line instead (`1 pass` / `1 fail`, `Tests: 1 failed`,
@@ -138,10 +147,14 @@ Claude ran it:
   pytest, jest, vitest), or a pass count and a fail count both required (bun,
   node). Lose the fail count and the bet is void. go and cargo read a pass off
   lines that are not there, so a go or cargo run through grep opens no market,
-  and neither does `grep -o`, which keeps parts of lines.
+  and neither does `grep -o`, which keeps parts of lines, or `grep -v`, which
+  drops the lines it names. One case no filter can rule out: a run of several
+  suites (a workspace) through a grep that keeps one suite's passing summary
+  and drops another's failing one settles on what is left, a pass.
 - **Piped into anything else, no market opens.** `head` drops the summary, so
   the house cannot settle it honestly.
-- **Background runs open no market**, since their result arrives later.
+- **Background runs open no market**, since their result arrives later: run in
+  the background by Claude, or sent there with `&` (`npm test &`).
 - **A run that never finishes** (interrupted, timed out, refused) is void, and
   the stake comes back.
 
@@ -155,6 +168,8 @@ What `claude plugin validate .` reports the module calls, and why:
 - `$.ui.toast`: the settlement line.
 - `$.clock.now`, `$.clock.after`: how long a run took, and taking the show down
   three and a half seconds after the stamp lands.
+- `$.clock.sleep`: the 2.5 second cap on holding a result back while the reels
+  stop.
 - `$.audio.play`: the coin and the trombone (`sounds/coin.wav`,
   `sounds/trombone.wav`), played from the mod's own folder.
 
