@@ -188,7 +188,7 @@ hook fails, its `.catch` lets the call through.
 node scripts/check-release.mjs
 claude plugin validate --strict .
 claude plugin test .
-npx -p typescript tsc -p .
+npx -p typescript tsc -p .   # locally, once the plugin was opened interactively: CI has no type declarations
 ```
 
 To release, add the version's section to `CHANGELOG.md`, set the version in
