@@ -1,9 +1,13 @@
-name: Release
+name: release
 
+# A tag created by `claude plugin tag --push` (pass-or-bust--v<version>) runs
+# every gate again on the tagged commit, then publishes a GitHub Release with
+# the CHANGELOG section as notes, a zip of the plugin for --plugin-url and the
+# zip's SHA-256.
 on:
   push:
     tags:
-      - "pass-or-bust--v*"
+      - 'pass-or-bust--v*'
 
 permissions:
   contents: write
@@ -12,42 +16,41 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
-
-      - name: Release check
-        run: node scripts/check-release.mjs --tag "$GITHUB_REF_NAME"
 
       - name: Install Claude Code
         run: |
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Validate
-        run: claude plugin validate --strict .
+      - name: Claude Code version
+        run: claude --version
 
-      # No typecheck: Claude Code writes the type declarations it needs only when the plugin loads in an
-      # interactive session, never here. It runs locally.
+      # The same gates as ci.yml, with the tag checked against the version.
+      - name: Gates
+        run: node scripts/gates.mjs --tag "$GITHUB_REF_NAME"
 
-      - name: Test
-        run: claude plugin test .
-
-      - name: Build the archive
-        # A zip of the tagged tree, for loading with --plugin-url without a marketplace
+      - name: Build the plugin zip
         run: |
-          version="${GITHUB_REF_NAME#pass-or-bust--v}"
-          archive="pass-or-bust-${version}.zip"
+          version=$(node -p "require('./.claude-plugin/plugin.json').version")
+          archive="pass-or-bust-$version.zip"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
           git archive --format=zip --prefix=pass-or-bust/ -o "$archive" HEAD
           sha256sum "$archive" | tee "$archive.sha256"
-          echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
-          echo "VERSION=$version" >> "$GITHUB_ENV"
 
-      - name: Create the GitHub release
+      - name: Release notes
+        run: node scripts/check-release.mjs --notes > notes.md
+
+      - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          node scripts/check-release.mjs --notes > notes.md
-          gh release create "$GITHUB_REF_NAME" --title "pass-or-bust $VERSION" --notes-file notes.md "$ARCHIVE" "$ARCHIVE.sha256"
+          gh release create "$GITHUB_REF_NAME" "$ARCHIVE" "$ARCHIVE.sha256" \
+            --verify-tag \
+            --title "pass-or-bust $VERSION" \
+            --notes-file notes.md

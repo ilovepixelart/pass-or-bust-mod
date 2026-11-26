@@ -1,67 +1,104 @@
-#!/usr/bin/env node
-// Release gate: the version lives in plugin.json alone, is MAJOR.MINOR.PATCH, has a CHANGELOG section, and
-// matches the tag `claude plugin tag` would create. CI runs it on every push; the release workflow runs it
-// with --tag. With --notes it prints the CHANGELOG section for the version instead.
+// Release gates for this plugin, run in CI on every push and by the release
+// workflow on a tag.
 //
-//   node scripts/check-release.mjs [--tag <tag>] [--notes] [--root <dir>]
+//   node scripts/check-release.mjs                 version, single source, the README's pinned tag, CHANGELOG present
+//   node scripts/check-release.mjs --tag <tag>     also: tag matches, CHANGELOG has the version
+//   node scripts/check-release.mjs --notes         print the CHANGELOG section for the version
+//
+// Exits 1 with one line per failed gate.
+import { readFileSync, existsSync } from 'node:fs'
 
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
 
 const args = process.argv.slice(2)
-const option = name => {
-  const at = args.indexOf(name)
-  return at === -1 ? undefined : args[at + 1]
-}
-const root = option('--root') ?? '.'
-const tag = option('--tag')
+const tagIndex = args.indexOf('--tag')
+const tag = tagIndex === -1 ? undefined : args[tagIndex + 1]
 const wantsNotes = args.includes('--notes')
 
 const failures = []
-const readJson = path => JSON.parse(readFileSync(join(root, path), 'utf8'))
+const fail = message => failures.push(message)
 
-const plugin = readJson('.claude-plugin/plugin.json')
+const plugin = JSON.parse(readFileSync('.claude-plugin/plugin.json', 'utf8'))
 const { name, version } = plugin
 
-if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version ?? '')) {
-  failures.push(`plugin.json version "${version}" is not MAJOR.MINOR.PATCH`)
+if (typeof version !== 'string' || !SEMVER.test(version)) {
+  fail(`plugin.json version ${JSON.stringify(version)} is not a semver version`)
 }
 
-const marketplace = readJson('.claude-plugin/marketplace.json')
-for (const entry of marketplace.plugins ?? []) {
-  if (entry.name === name && entry.version !== undefined) {
-    failures.push(`marketplace.json entry "${name}" sets version "${entry.version}": plugin.json is the one version source`)
+if (existsSync('.claude-plugin/marketplace.json')) {
+  const marketplace = JSON.parse(readFileSync('.claude-plugin/marketplace.json', 'utf8'))
+  for (const entry of marketplace.plugins ?? []) {
+    if (entry.name === name && entry.version !== undefined) {
+      fail(`marketplace.json entry "${name}" repeats the version; keep it in plugin.json only`)
+    }
   }
 }
 
-const changelog = readFileSync(join(root, 'CHANGELOG.md'), 'utf8')
-const heading = `## [${version}]`
-const start = changelog.split('\n').findIndex(line => line.startsWith(heading))
-let notes = ''
-if (start === -1) {
-  failures.push(`CHANGELOG.md has no "${heading}" section`)
-} else {
-  const lines = changelog.split('\n').slice(start + 1)
-  const end = lines.findIndex(line => line.startsWith('## ['))
-  notes = (end === -1 ? lines : lines.slice(0, end)).join('\n').trim()
-  if (notes === '') {
-    failures.push(`CHANGELOG.md section "${heading}" is empty`)
+// The README's install line pins a release tag: after a version bump it must name the new one, or it installs the old.
+if (existsSync('README.md')) {
+  const pinned = [...readFileSync('README.md', 'utf8').matchAll(new RegExp(`#${name}--v([0-9A-Za-z.+-]+)`, 'g'))].map(m => m[1])
+  for (const at of pinned.filter(v => v !== version)) {
+    fail(`README.md pins ${name}--v${at}; the version is ${version}`)
   }
 }
 
-if (tag !== undefined && tag !== `${name}--v${version}`) {
-  failures.push(`tag "${tag}" does not match "${name}--v${version}"`)
+// A README whose Stable surface has an Options row promises those options: plugin.json's userConfig must be
+// exactly those. A README without that row promises none, and is not checked.
+const optionsRow = existsSync('README.md')
+  ? readFileSync('README.md', 'utf8').split('\n').find(line => line.startsWith('| Options |'))
+  : undefined
+if (optionsRow !== undefined) {
+  const promised = [...optionsRow.split('|')[2].split(':')[0].matchAll(/`([^`]+)`/g)].map(m => m[1]).sort()
+  const options = Object.keys(plugin.userConfig ?? {}).sort()
+  if (promised.join() !== options.join()) {
+    fail(`README.md's Stable surface promises options ${JSON.stringify(promised)}; plugin.json has ${JSON.stringify(options)}`)
+  }
+}
+
+/** The body of the CHANGELOG section headed `## [<heading>]`, or undefined. */
+const sectionOf = (changelog, heading) => {
+  const lines = changelog.split('\n')
+  const start = lines.findIndex(line => line.startsWith(`## [${heading}]`))
+  if (start === -1) {
+    return undefined
+  }
+  const end = lines.findIndex((line, index) => index > start && line.startsWith('## ['))
+  return lines
+    .slice(start + 1, end === -1 ? undefined : end)
+    .join('\n')
+    .trim()
+}
+
+const changelog = existsSync('CHANGELOG.md') ? readFileSync('CHANGELOG.md', 'utf8') : undefined
+if (changelog === undefined) {
+  fail('CHANGELOG.md is missing')
+}
+const section = changelog === undefined ? undefined : sectionOf(changelog, version)
+
+if (tag !== undefined || tagIndex !== -1) {
+  const expected = `${name}--v${version}`
+  if (tag !== expected) {
+    fail(`tag ${JSON.stringify(tag ?? '')} does not match ${expected}`)
+  }
+}
+
+if ((tagIndex !== -1 || wantsNotes) && changelog !== undefined) {
+  if (section === undefined) {
+    fail(`CHANGELOG.md has no "## [${version}]" section`)
+  } else if (section === '') {
+    fail(`CHANGELOG.md section "## [${version}]" is empty`)
+  }
 }
 
 if (failures.length > 0) {
-  for (const failure of failures) {
-    console.error(`check-release: ${failure}`)
+  for (const message of failures) {
+    console.error(`release check: ${message}`)
   }
   process.exit(1)
 }
 
 if (wantsNotes) {
-  process.stdout.write(`${notes}\n`)
+  process.stdout.write(`${section}\n`)
 } else {
-  console.log(`check-release: ${name} ${version} is ready${tag === undefined ? '' : ` to release as ${tag}`}`)
+  console.log(`release check: ${name} ${version}${tag === undefined ? '' : ` (${tag})`} passes`)
 }
