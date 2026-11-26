@@ -1,16 +1,20 @@
-name: CI
+name: ci
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -19,14 +23,9 @@ jobs:
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Release check
-        run: node scripts/check-release.mjs
+      - name: Claude Code version
+        run: claude --version
 
-      - name: Validate
-        run: claude plugin validate --strict .
-
-      # No typecheck: Claude Code writes the type declarations it needs only when the plugin loads in an
-      # interactive session, never here. It runs locally.
-
-      - name: Test
-        run: claude plugin test .
+      # One script holds every gate, so a green local run is the same check.
+      - name: Gates
+        run: node scripts/gates.mjs

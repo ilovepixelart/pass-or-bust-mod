@@ -185,10 +185,9 @@ hook fails, its `.catch` lets the call through.
 ## Development
 
 ```sh
-node scripts/check-release.mjs
-claude plugin validate --strict .
-claude plugin test .
-npx -p typescript tsc -p .   # locally, once the plugin was opened interactively: CI has no type declarations
+node scripts/gates.mjs              # release check, validate, test: what CI runs
+node scripts/gates.mjs --typecheck  # also the typecheck, once the plugin was opened interactively
+node scripts/gates.mjs --load       # also the tests eight times at once
 ```
 
 To release, add the version's section to `CHANGELOG.md`, set the version in
