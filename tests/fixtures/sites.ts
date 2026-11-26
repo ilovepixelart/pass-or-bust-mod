@@ -12,6 +12,7 @@ export const SURFACES = ['terminal', 'desktop'] as const
 
 export const BAND_PROPS: RenderPropsOf['AbovePrompt'] = {
   hasSurvey: false,
+  isCollapsed: false,
   isWorking: true,
   maxRows: 12,
   bodyColumns: 100,
